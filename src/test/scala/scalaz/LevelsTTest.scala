@@ -4,6 +4,8 @@ import scalaprops.Gen
 import scalaprops.Scalaprops
 import scalaprops.scalazlaws
 import scalaz.std.AllInstances._
+import scalaz.Id.Id
+import scalaz.idInstance
 import scalaprops.ScalapropsScalaz._
 
 object LevelsTTest extends Scalaprops {
@@ -18,6 +20,8 @@ object LevelsTTest extends Scalaprops {
       g.f(size, r)
     }
   }
+
+  val monadPlusId = scalazlaws.monadPlus.all[LevelsT[Id, *]]
 
   val monadPlusMaybe = scalazlaws.monadPlus.all[LevelsT[Maybe, *]]
 

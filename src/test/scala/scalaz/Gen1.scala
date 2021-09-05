@@ -1,5 +1,6 @@
 package scalaz
 
+import scalaz.Id.Id
 import scalaprops.Gen
 import scalaprops.ScalapropsScalaz._
 
@@ -16,6 +17,12 @@ abstract class Gen1[F[_]] { self =>
 
 object Gen1 {
   def apply[F[_]](implicit F: Gen1[F]): Gen1[F] = F
+
+  implicit val id: Gen1[Id] =
+    new Gen1[Id] {
+      def gen1[A: Gen] =
+        Gen[A]
+    }
 
   implicit val maybe: Gen1[Maybe] =
     new Gen1[Maybe] {

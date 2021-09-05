@@ -50,7 +50,7 @@ object LevelsT extends LevelsTInstances {
   }
 
   implicit def monadPlus[F[_]](implicit
-      F0: MonadPlus[F]
+      F0: Monad[F]
   ): MonadPlus[LevelsT[F, *]] =
     new MonadPlus[LevelsT[F, *]] with LevelsTPlusEmpty[F] {
       override def F = F0
