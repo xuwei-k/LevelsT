@@ -14,5 +14,5 @@ jobs:
       with:
         java-version: "adopt@1.8"
     - uses: coursier/cache-action@v6
-    - run: sbt -v scalafmtSbtCheck "+ scalafmtCheckAll" "+ test"
+    - run: sbt -v scalafmtSbtCheck "+ scalafmtCheckAll" "+ Test/compile" "+ test"
     - run: rm -rf "$HOME/.ivy2/local"
