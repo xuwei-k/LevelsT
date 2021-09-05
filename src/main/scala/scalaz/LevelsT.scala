@@ -2,7 +2,7 @@ package scalaz
 
 import scalaz.std.tuple._
 
-final case class LevelsT[F[_], A](run: F[Maybe[(IList[A], LevelsT[F, A])]]) {
+final case class LevelsT[F[_], A](run: F[Maybe[(Bag[A], LevelsT[F, A])]]) {
   def map[B](f: A => B)(implicit F: Functor[F]): LevelsT[F, B] =
     LevelsT[F, B](
       F.map(run)(
@@ -18,7 +18,7 @@ final case class LevelsT[F[_], A](run: F[Maybe[(IList[A], LevelsT[F, A])]]) {
         case (xs, Maybe.Empty()) =>
           xs
         case (Maybe.Just((x, xs)), Maybe.Just((y, ys))) =>
-          Maybe.just((x ++ y, xs ++ ys))
+          Maybe.just((Semigroup[Bag[A]].append(x, y), xs ++ ys))
       }
     )
   }
@@ -27,25 +27,28 @@ final case class LevelsT[F[_], A](run: F[Maybe[(IList[A], LevelsT[F, A])]]) {
     LevelsT[F, B](
       F.bind(run) {
         case Maybe.Empty() =>
-          F.point(Maybe.empty[(IList[B], LevelsT[F, B])])
+          F.point(Maybe.empty[(Bag[B], LevelsT[F, B])])
         case Maybe.Just((x, xs)) =>
-          x.foldRight(
-            LevelsT(F.point(Maybe.just((IList.empty[B], xs.flatMap(k)))))
-          ) { case (a, b) =>
-            k(a) ++ b
-          }.run
+          Foldable[Bag]
+            .foldRight(
+              x,
+              LevelsT(F.point(Maybe.just((Bag.empty[B], xs.flatMap(k)))))
+            ) { case (a, b) =>
+              k(a) ++ b
+            }
+            .run
       }
     )
 }
 
 object LevelsT extends LevelsTInstances {
   implicit def equal[F[_], A](implicit
-      A: Equal[A],
+      A: Order[A],
       F: => Eq1[F]
   ): Equal[LevelsT[F, A]] = { (a1: LevelsT[F, A], a2: LevelsT[F, A]) =>
     {
       implicit lazy val f0: Eq1[F] = F
-      f0.eq1[Maybe[(IList[A], LevelsT[F, A])]].equal(a1.run, a2.run)
+      f0.eq1[Maybe[(Bag[A], LevelsT[F, A])]].equal(a1.run, a2.run)
     }
   }
 
@@ -58,9 +61,12 @@ object LevelsT extends LevelsTInstances {
       override def point[A](a: => A): LevelsT[F, A] =
         LevelsT(
           F.point(
-            Maybe.just((IList.single(a), PlusEmpty[LevelsT[F, *]].empty[A]))
+            Maybe.just((Bag.single(a), PlusEmpty[LevelsT[F, *]].empty[A]))
           )
         )
+
+      override def map[A, B](fa: LevelsT[F, A])(f: A => B): LevelsT[F, B] =
+        fa map f
 
       override def bind[A, B](fa: LevelsT[F, A])(
           f: A => LevelsT[F, B]
@@ -92,7 +98,7 @@ private trait LevelsTPlusEmpty[F[_]]
   override def F: Applicative[F]
 
   override def empty[A]: LevelsT[F, A] =
-    LevelsT(F.point(Maybe.empty[(IList[A], LevelsT[F, A])]))
+    LevelsT(F.point(Maybe.empty[(Bag[A], LevelsT[F, A])]))
 }
 
 private trait LevelsTPlus[F[_]] extends Plus[LevelsT[F, *]] {
