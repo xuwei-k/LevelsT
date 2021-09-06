@@ -4,6 +4,7 @@ import scalaz.Id.Id
 import scalaz.syntax.bind._
 import scalaz.syntax.equal._
 import scalaz.std.anyVal._
+import scalaz.LevelsT.T
 
 object PolynomialExample {
 
@@ -23,7 +24,7 @@ object PolynomialExample {
 
   def unitToList(x: LevelsUnit): IList[Int] = {
     x.run match {
-      case Maybe.Just((x, xs)) =>
+      case Maybe.Just(T(x, xs)) =>
         Foldable[Bag].length(x) :: unitToList(xs)
       case Maybe.Empty() =>
         IList.empty[Int]
@@ -44,9 +45,9 @@ object PolynomialExample {
         Bag.empty[Unit]
       case n =>
         Bag.Value(treeN(n))
-    }.foldRight(empty)((x, y) => LevelsT[Id, Unit](Maybe.just((x, y))))
+    }.foldRight(empty)((x, y) => LevelsT[Id, Unit](Maybe.just(T(x, y))))
   }
 
   val empty: LevelsUnit =
-    LevelsT[Id, Unit](Maybe.empty[(Bag[Unit], LevelsUnit)])
+    LevelsT[Id, Unit](Maybe.empty[T[Id, Unit]])
 }

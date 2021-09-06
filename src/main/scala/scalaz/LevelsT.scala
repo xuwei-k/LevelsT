@@ -1,12 +1,12 @@
 package scalaz
 
-import scalaz.std.tuple._
+import LevelsT.T
 
-final case class LevelsT[F[_], A](run: F[Maybe[(Bag[A], LevelsT[F, A])]]) {
+final case class LevelsT[F[_], A](run: F[Maybe[T[F, A]]]) {
   def map[B](f: A => B)(implicit F: Functor[F]): LevelsT[F, B] =
     LevelsT[F, B](
       F.map(run)(
-        _.map(Bifunctor[Tuple2].bimap(_)(_.map(f), _.map(f)))
+        _.map(_.map(f))
       )
     )
 
@@ -17,8 +17,8 @@ final case class LevelsT[F[_], A](run: F[Maybe[(Bag[A], LevelsT[F, A])]]) {
           ys
         case (xs, Maybe.Empty()) =>
           xs
-        case (Maybe.Just((x, xs)), Maybe.Just((y, ys))) =>
-          Maybe.just((Semigroup[Bag[A]].append(x, y), xs ++ ys))
+        case (Maybe.Just(T(x, xs)), Maybe.Just(T(y, ys))) =>
+          Maybe.just(T(Semigroup[Bag[A]].append(x, y), xs ++ ys))
       }
     )
   }
@@ -27,12 +27,12 @@ final case class LevelsT[F[_], A](run: F[Maybe[(Bag[A], LevelsT[F, A])]]) {
     LevelsT[F, B](
       F.bind(run) {
         case Maybe.Empty() =>
-          F.point(Maybe.empty[(Bag[B], LevelsT[F, B])])
-        case Maybe.Just((x, xs)) =>
+          F.point(Maybe.empty[T[F, B]])
+        case Maybe.Just(T(x, xs)) =>
           Foldable[Bag]
             .foldRight(
               x,
-              LevelsT(F.point(Maybe.just((Bag.empty[B], xs.flatMap(k)))))
+              LevelsT(F.point(Maybe.just(T(Bag.empty[B], xs.flatMap(k)))))
             ) { case (a, b) =>
               k(a) ++ b
             }
@@ -42,13 +42,54 @@ final case class LevelsT[F[_], A](run: F[Maybe[(Bag[A], LevelsT[F, A])]]) {
 }
 
 object LevelsT extends LevelsTInstances {
-  implicit def equal[F[_], A](implicit
+  final case class T[F[_], A](head: Bag[A], tail: LevelsT[F, A]) {
+    def map[B](f: A => B)(implicit F: Functor[F]): T[F, B] =
+      T(head.map(f), tail.map(f))
+  }
+
+  object T {
+    implicit def equal[F[_]: Foldable, A: Order](implicit
+        F: => Eq1[F],
+        A: Equal[A]
+    ): Equal[T[F, A]] = { case (a1 @ T(x, xs), a2 @ T(y, ys)) =>
+      val F3 = Foldable[T[F, *]]
+      if (F3.empty(a1)) {
+        F3.empty(a2)
+      } else {
+        implicit lazy val f1: Eq1[F] = F
+        Equal[Bag[A]].equal(x, y) && Equal[LevelsT[F, A]].equal(xs, ys)
+      }
+    }
+
+    implicit def foldable[F[_]: Foldable]: Foldable[T[F, *]] =
+      new Foldable.FromFoldMap[T[F, *]] {
+        override def foldMap[A, B](
+            fa: T[F, A]
+        )(f: A => B)(implicit F: Monoid[B]): B =
+          F.append(
+            Foldable[Bag].foldMap(fa.head)(f),
+            Foldable[LevelsT[F, *]].foldMap(fa.tail)(f)
+          )
+      }
+  }
+
+  implicit def foldable[F[_]: Foldable]: Foldable[LevelsT[F, *]] =
+    new Foldable.FromFoldMap[LevelsT[F, *]] {
+      override def foldMap[A, B](
+          fa: LevelsT[F, A]
+      )(f: A => B)(implicit F: Monoid[B]): B =
+        Foldable[F].foldMap(fa.run)(a =>
+          Foldable[Maybe].foldMap(a)(b => Foldable[T[F, *]].foldMap(b)(f))
+        )
+    }
+
+  implicit def equal[F[_]: Foldable, A](implicit
       A: Order[A],
       F: => Eq1[F]
   ): Equal[LevelsT[F, A]] = { (a1: LevelsT[F, A], a2: LevelsT[F, A]) =>
     {
       implicit lazy val f0: Eq1[F] = F
-      f0.eq1[Maybe[(Bag[A], LevelsT[F, A])]].equal(a1.run, a2.run)
+      f0.eq1[Maybe[T[F, A]]].equal(a1.run, a2.run)
     }
   }
 
@@ -61,7 +102,7 @@ object LevelsT extends LevelsTInstances {
       override def point[A](a: => A): LevelsT[F, A] =
         LevelsT(
           F.point(
-            Maybe.just((Bag.single(a), PlusEmpty[LevelsT[F, *]].empty[A]))
+            Maybe.just(T(Bag.single(a), PlusEmpty[LevelsT[F, *]].empty[A]))
           )
         )
 
@@ -98,7 +139,7 @@ private trait LevelsTPlusEmpty[F[_]]
   override def F: Applicative[F]
 
   override def empty[A]: LevelsT[F, A] =
-    LevelsT(F.point(Maybe.empty[(Bag[A], LevelsT[F, A])]))
+    LevelsT(F.point(Maybe.empty[T[F, A]]))
 }
 
 private trait LevelsTPlus[F[_]] extends Plus[LevelsT[F, *]] {

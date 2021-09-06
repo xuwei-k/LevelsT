@@ -7,8 +7,19 @@ import scalaz.std.AllInstances._
 import scalaz.Id.Id
 import scalaz.idInstance
 import scalaprops.ScalapropsScalaz._
+import scalaz.LevelsT.T
 
 object LevelsTTest extends Scalaprops {
+
+  implicit def tGen[F[_], A](implicit
+      F: => Gen1[F],
+      A: Gen[A]
+  ): Gen[T[F, A]] = {
+    Gen.gen { (size, r) =>
+      implicit lazy val g1: Gen1[F] = F
+      Apply[Gen].apply2(Gen[Bag[A]], Gen[LevelsT[F, A]])(T.apply).f(size, r)
+    }
+  }
 
   implicit def bTreeGen[A](implicit A: Gen[A]): Gen[BTree[A]] =
     Gen.lazyFrequency(
@@ -32,7 +43,7 @@ object LevelsTTest extends Scalaprops {
   ): Gen[LevelsT[F, A]] = {
     Gen.gen[LevelsT[F, A]] { (size, r) =>
       implicit lazy val f0: Gen1[F] = F
-      val g = f0.gen1[Maybe[(Bag[A], LevelsT[F, A])]].map(LevelsT.apply[F, A])
+      val g = f0.gen1[Maybe[T[F, A]]].map(LevelsT.apply[F, A])
       g.f(size, r)
     }
   }
