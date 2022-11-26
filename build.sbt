@@ -1,7 +1,7 @@
-def Scala213 = "2.13.6"
+def Scala213 = "2.13.10"
 
 scalaVersion := Scala213
-crossScalaVersions := Seq(Scala213, "3.1.0-RC1")
+crossScalaVersions := Seq(Scala213, "3.2.1")
 
 scalacOptions ++= {
   if (scalaBinaryVersion.value == "3") {
@@ -27,6 +27,6 @@ libraryDependencies ++= {
 
 scalapropsCoreSettings
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.5" cross CrossVersion.for3Use2_13
-libraryDependencies += "com.github.scalaprops" %% "scalaprops-scalaz" % "0.8.3" % "test"
-libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.8.3" % "test"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.7"
+libraryDependencies += "com.github.scalaprops" %% "scalaprops-scalaz" % "0.9.1" % "test"
+libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.9.1" % "test"
