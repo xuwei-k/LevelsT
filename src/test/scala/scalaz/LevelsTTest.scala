@@ -5,7 +5,6 @@ import scalaprops.Scalaprops
 import scalaprops.scalazlaws
 import scalaz.std.AllInstances._
 import scalaz.Id.Id
-import scalaz.idInstance
 import scalaprops.ScalapropsScalaz._
 import scalaz.LevelsT.T
 
