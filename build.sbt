@@ -1,7 +1,7 @@
 def Scala213 = "2.13.13"
 
 scalaVersion := Scala213
-crossScalaVersions := Seq(Scala213, "3.3.2")
+crossScalaVersions := Seq(Scala213, "3.3.3")
 
 scalacOptions ++= {
   if (scalaBinaryVersion.value == "3") {
