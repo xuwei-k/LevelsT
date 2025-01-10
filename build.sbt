@@ -1,4 +1,4 @@
-def Scala213 = "2.13.15"
+def Scala213 = "2.13.16"
 
 scalaVersion := Scala213
 crossScalaVersions := Seq(Scala213, "3.3.4")
