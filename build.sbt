@@ -27,6 +27,6 @@ libraryDependencies ++= {
 
 scalapropsCoreSettings
 
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.8"
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.9"
 libraryDependencies += "com.github.scalaprops" %% "scalaprops-scalaz" % "0.11.0" % "test"
 libraryDependencies += "com.github.scalaprops" %% "scalaprops" % "0.11.0" % "test"
